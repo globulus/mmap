@@ -34,7 +34,7 @@ The usage of the lib is extremely simple:
 2. Create a **MergeManager** instance in your Processor that has your MergeInput class as its type parameter, and supply it the following params:
 
     * *filer* from your annotation processor.
-    * *timestamp* obtained at the begging of Processor run using *System.currentTimeMillis()*.
+    * *timestamp* obtained at the begging of Processor run using *System.currentTimeMillis()*. **It is important that this value be obtained before outside of *Processor#process()* method, ideally in the processor's constructor.**
     * *packageName* that tells us where should the merge files live.
     * *processorName* that uniquely identifies your Processor.
     * *shoulMergeResolver* whose only method decides if your current module should be merged up or not.
@@ -47,6 +47,8 @@ The usage of the lib is extremely simple:
 ```java
 ```
 
-##### Processor log
+#### Config
 
 If you wish to see MMPA's debug output, provide an implementation of a **ProcessorLog** using *MergeManager#setProcessorLog()*.
+
+The default **lookback period** is 30 seconds - if your machine is slow and the build process for a module takes more than that, i.e subsequent calls to the annotation processor for the next module is more than 30 seconds after the previous one, use *MergeManager#setLookbackPeriod()* to increase this number.

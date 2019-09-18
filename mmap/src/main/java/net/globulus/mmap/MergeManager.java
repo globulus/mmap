@@ -5,19 +5,23 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.annotation.processing.Filer;
 
 public final class MergeManager<T extends MergeInput> {
 
-    private static final int MAX_MILLIS_PASSED = 60_000;
+    private static final int DEFAULT_LOOKBACK_PERIOD = 30_000;
 
     private final Filer filer;
     private final long timestamp;
     private final String packageName;
     private final String processorName;
     private final ShouldMergeResolver resolver;
+
     private ProcessorLog processorLog = new ProcessorLog.Stub();
+    private int lookbackPeriod = DEFAULT_LOOKBACK_PERIOD;
 
     public MergeManager(Filer filer,
                         long timestamp,
@@ -41,35 +45,48 @@ public final class MergeManager<T extends MergeInput> {
         return this;
     }
 
+    public MergeManager<T> setLookbackPeriod(int lookbackPeriod) {
+        this.lookbackPeriod = (lookbackPeriod != 0) ? lookbackPeriod : DEFAULT_LOOKBACK_PERIOD;
+        return this;
+    }
+
     @SuppressWarnings("unchecked")
     public T manageMerging(T input) {
         if (resolver.shouldMerge()) {
             ByteBuffer buffer = ByteBuffer.allocate(50_000);
             // Find first merge file
             processorLog.warn(null, "Finding first merge file");
-            Long firstMergeClassIndex = null;
-            for (int i = MAX_MILLIS_PASSED; i > 0; i--) {
+            List<Class> mergeClasses = new ArrayList<>();
+            for (int i = 0; i < lookbackPeriod; i++) {
                 long index = timestamp - i;
                 try {
-                    Class.forName(packageName + "."
-                            + MergeFileCodeGen.getClassName(processorName, index));
-                    firstMergeClassIndex = index;
-                    processorLog.warn(null, "Found " + firstMergeClassIndex);
-                    break; // break if no exception was thrown
-                } catch (ClassNotFoundException ignored) { }
-            }
-            if (firstMergeClassIndex != null) {
-                try {
-                    for (int i = 0; i < Integer.MAX_VALUE; i++) {
-                        long index = firstMergeClassIndex + i;
-                        Class mergeClass = Class.forName(packageName
-                                + "." + MergeFileCodeGen.getClassName(processorName, index));
-                        buffer.put((byte[]) mergeClass.getField(MergeFileCodeGen.MERGE_FIELD_NAME).get(null));
-                        if (!mergeClass.getField(MergeFileCodeGen.NEXT_FIELD_NAME).getBoolean(null)) {
-                            break;
+                    Class lastMergeClass = Class.forName(getClassNameForIndex(index));
+                    processorLog.warn(null, "Found merge class at " + index);
+                    mergeClasses.add(lastMergeClass);
+
+                    // If exception wasn't thrown, we've found the last written merge file
+                    for (long j = index - 1; j > timestamp - lookbackPeriod; j--) {
+                        try {
+                            Class mergeClass = Class.forName(getClassNameForIndex(j));
+                            mergeClasses.add(mergeClass);
+                        } catch (ClassNotFoundException e) {
+                            break; // Break as we don't have classes beyond this point
                         }
                     }
-                } catch (ClassNotFoundException | NoSuchFieldException | IllegalAccessException e) {
+
+                    processorLog.warn(null, "Found a total of "
+                            + mergeClasses.size() + " merge classes in this run.");
+                    break; // break if something was found
+                } catch (ClassNotFoundException ignored) { }
+            }
+            for (int i = mergeClasses.size() - 1; i >= 0; i--) {
+                Class mergeClass = mergeClasses.get(i);
+                try {
+                    buffer.put((byte[]) mergeClass.getField(MergeFileCodeGen.MERGE_FIELD_NAME).get(null));
+                    if (!mergeClass.getField(MergeFileCodeGen.NEXT_FIELD_NAME).getBoolean(null)) {
+                        break;
+                    }
+                } catch (IllegalAccessException | NoSuchFieldException e) {
                     e.printStackTrace();
                 }
             }
@@ -81,9 +98,14 @@ public final class MergeManager<T extends MergeInput> {
             }
         }
 
-        new MergeFileCodeGen(packageName, processorName, processorLog).generate(filer, timestamp, input);
+        new MergeFileCodeGen(packageName, processorName, processorLog)
+                .generate(filer, timestamp, input);
 
         return input;
+    }
+
+    private String getClassNameForIndex(long index) {
+        return packageName + "." + MergeFileCodeGen.getClassName(processorName, index);
     }
 
     @SuppressWarnings("unchecked")
