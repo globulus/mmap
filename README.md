@@ -2,15 +2,27 @@
 
 MMAP allows you to include multiple hierarchical module support in your JVM annotation processor! By default, JVM annotation processors [work on a single module](#why) and don't support hierarchical multi-module projects (i.e those that have several levels of libraries atop the release module). MMAP hacks that, allowing your annotation processor to [preserve its output between module runs](#how-does-it-work) and deliver its result based on data gathered from all the modules' processing.
 
-Check out [the reasoning behind the lib](#why), [how does it work](#how-does-it-work) and [how to use it](#how-to-use). Additionally, all the Easy libs use it to allow for MM support: EasyPrefs, EasyParcel...dsfkdsf
+Check out [the reasoning behind the lib](#why), [how does it work](#how-does-it-work) and [how to use it](#how-to-use). Additionally, all the Easy libs use it to allow for MM support, such as [EasyPrefs](https://github.com/globulus/EasyPrefs), and [EasyFlavor](https://github.com/globulus/easyflavor).
 
 ### Installation
 
+MMAP is [hosted on JCenter](https://bintray.com/beta/#/gordan-glavas/mmap/net.globulus.mmap). To add it, simply include the dependency:
+
+```gradle
+ repositories {
+    jcenter()
+}
+...
+dependencies {
+    compile 'net.globulus.mmap:mmap:1.0.0'
+}
+```
+
 ### Why
 
-JVM annotation processors work in such a way that each module is processed in complete isolation - the processor doesn't know how many more modules are there out there, and the only output it can produce is a file.
+JVM annotation processors work in such a way that each module is processed in complete isolation - the processor doesn't know how many more modules are there out there, and the only output it can produce is a Java file.
 
-This in itself isn't huge of a restriction and can be worked around, but, e.g, Android DEX requires all the generated file names to be unique, which becomes an issue since the AP can't know the names of previously generated files unless a convention is followed, which then makes it difficult to guarantee unique names for the next module. MMAP solves this issue using timestamps, allowing for unique names across all processed modules, with their inputs properly merged from the top down.
+This in itself isn't huge of a restriction and can be worked around, but other limitations exist: e.g, Android DEX requires all the generated file names to be unique, which becomes an issue since the AP can't know the names of previously generated files unless a convention is followed, which then makes it difficult to guarantee unique names for the next module. MMAP solves this issue using timestamps, allowing for unique names across all processed modules, with their inputs properly merged from the top down.
 
 ### How does it work
 
