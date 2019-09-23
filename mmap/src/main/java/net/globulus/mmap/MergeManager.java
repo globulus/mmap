@@ -7,9 +7,17 @@ import java.io.ObjectInputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import javax.annotation.processing.Filer;
+import javax.annotation.processing.RoundEnvironment;
 
+/**
+ * Manages all aspects of multi-module hierarchical merging of processor inputs. Put an instance of
+ * this class in your {@link javax.annotation.processing.AbstractProcessor#process(Set, RoundEnvironment)}
+ * method, and invoke {@link #manageMerging(MergeInput)}.
+ * @param <T> The {@link MergeInput} class for your processor.
+ */
 public final class MergeManager<T extends MergeInput> {
 
     private static final int DEFAULT_LOOKBACK_PERIOD = 30_000;
@@ -23,6 +31,13 @@ public final class MergeManager<T extends MergeInput> {
     private ProcessorLog processorLog = new ProcessorLog.Stub();
     private int lookbackPeriod = DEFAULT_LOOKBACK_PERIOD;
 
+    /**
+     * @param filer The {@link Filer} of your processor.
+     * @param timestamp <b>Obtain this in your processor's constructor by calling {@link System#currentTimeMillis()}.</b>
+     * @param packageName Name of the package where your processor is outputting files. Merge files will be written there.
+     * @param processorName Unique name for your annotation processor.
+     * @param resolver {@link ShouldMergeResolver}
+     */
     public MergeManager(Filer filer,
                         long timestamp,
                         String packageName,
@@ -40,16 +55,32 @@ public final class MergeManager<T extends MergeInput> {
         this.resolver = resolver;
     }
 
+    /**
+     * Sets the {@link ProcessorLog}
+     * @return this for fluent syntax
+     */
     public MergeManager<T> setProcessorLog(ProcessorLog processorLog) {
         this.processorLog = (processorLog != null) ? processorLog : new ProcessorLog.Stub();
         return this;
     }
 
+    /**
+     * Lookback period defines how many names does the merge manager scan before to find its previous
+     * merge file. Increase this value (in ms) if your project is very large or your build machine slow.
+     * @return this for fluent syntax
+     */
     public MergeManager<T> setLookbackPeriod(int lookbackPeriod) {
         this.lookbackPeriod = (lookbackPeriod != 0) ? lookbackPeriod : DEFAULT_LOOKBACK_PERIOD;
         return this;
     }
 
+    /**
+     * If your {@link #resolver} returns true, look back to find the latest merge files. If such
+     * files exist, {@link MergeInput#mergedUp(MergeInput) mergeUp} the provided input with the
+     * decoded one, and return the new input.
+     * @param input Current processor's input.
+     * @return Merge of current input with the previous one.
+     */
     @SuppressWarnings("unchecked")
     public T manageMerging(T input) {
         if (resolver.shouldMerge()) {

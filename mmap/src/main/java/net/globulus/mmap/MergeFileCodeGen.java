@@ -15,6 +15,10 @@ import javax.annotation.processing.Filer;
 import javax.lang.model.element.Modifier;
 import javax.tools.JavaFileObject;
 
+/**
+ * Generates the merge files, which are classes that contain byte array of serialized
+ * {@link MergeInput}s.
+ */
 final class MergeFileCodeGen {
 
 	private static final String CLASS_NAME_FORMAT = "%sMerge_%d";
