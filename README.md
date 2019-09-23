@@ -14,7 +14,7 @@ MMAP is [hosted on JCenter](https://bintray.com/beta/#/gordan-glavas/mmap/net.gl
 }
 ...
 dependencies {
-    compile 'net.globulus.mmap:mmap:1.0.0'
+    compile 'net.globulus.mmap:mmap:1.0.1'
 }
 ```
 
@@ -86,3 +86,19 @@ input = mergeManager.managerMerging(input);
 If you wish to see MMPA's debug output, provide an implementation of a **ProcessorLog** using *MergeManager#setProcessorLog()*.
 
 The default **lookback period** is 30 seconds - if your machine is slow and the build process for a module takes more than that, i.e subsequent calls to the annotation processor for the next module is more than 30 seconds after the previous one, use *MergeManager#setLookbackPeriod()* to increase this number.
+
+#### Source and Sink
+
+When designing your annotation processor, it might be necessary to know if a certain module is the topmost module (i.e, the one at the top of the module hierarchy), or if it is the bottom-most module (i.e, the one that is processed last).
+
+To make this simpler, MMAP ships with two annotations, *@Source* and *@Sink*, which you may use to these ends. If you decide to employ these annotations, you'll most likely have these two lines in your Processor's *process* method:
+
+ ```java
+boolean shouldMerge = roundEnv.getElementsAnnotatedWith(Source.class).isEmpty();
+boolean shouldWriteFinalFile = !roundEnv.getElementsAnnotatedWith(Sink.class).isEmpty();
+```
+
+Again, how you design your processor and if you use these annotations or not is entire up to the processor developer.
+
+#### Advanced - MergeSession
+

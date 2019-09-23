@@ -24,8 +24,6 @@ public final class MergeManager<T extends MergeInput> {
     ProcessorLog processorLog = new ProcessorLog.Stub();
     int lookbackPeriod = DEFAULT_LOOKBACK_PERIOD;
 
-    private MergeSession<T> session;
-
     /**
      * @param filer The {@link Filer} of your processor.
      * @param timestamp <b>Obtain this in your processor's constructor by calling {@link System#currentTimeMillis()}.</b>
@@ -82,7 +80,7 @@ public final class MergeManager<T extends MergeInput> {
      */
     @SuppressWarnings("unchecked")
     public T manageMerging(T input) {
-        session = newSession();
+        MergeSession<T> session = newSession();
         input = session.mergeInput(input);
         session.writeMergeFiles(input);
         return input;
