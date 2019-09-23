@@ -36,11 +36,29 @@ Merge files are **guaranteed to have unique names across all modules**, meaning 
 
 ### How to use
 
-The usage of the lib is extremely simple:
+The usage of the lib is extremely simple (code snippets taken from [EasyPrefs](https://github.com/globulus/EasyPrefs)):
 
 1. Define your processor's generated file input as a class that implements **MergeInput**. Implement the *mergeUp* method to define how does the input merge with its top-level input.
 
 ```java
+public static class Input implements MergeInput<Input> {
+    
+    final String masterMethod;
+    final List<PrefType> classes;
+    final List<ExposedMethod> methods;
+
+...
+
+    @Override
+    public Input mergedUp(Input other) {
+        String masterMethod = (other.masterMethod != null) ? other.masterMethod : this.masterMethod;
+        List<PrefType> classes = new ArrayList<>(other.classes);
+        classes.addAll(this.classes);
+        List<ExposedMethod> methods = new ArrayList<>(other.methods);
+        methods.addAll(this.methods);
+        return new Input(masterMethod, classes, methods);
+    }
+}
 ```
 
 2. Create a **MergeManager** instance in your Processor that has your MergeInput class as its type parameter, and supply it the following params:
@@ -52,11 +70,15 @@ The usage of the lib is extremely simple:
     * *shoulMergeResolver* whose only method decides if your current module should be merged up or not.
     
 ```java
+MergeManager mergeManager =  new MergeManager<Input>(mFiler, mTimestamp,
+                FrameworkUtil.getEasyPrefsPackageName(), NAME,
+                (ShouldMergeResolver) () -> shouldMergeResolution);
 ```
     
 3. Use MergeManager's **manageMerging(T)** method to transform your input to a merged one, and write additional merge classes.
 
 ```java
+input = mergeManager.managerMerging(input);
 ```
 
 #### Config
