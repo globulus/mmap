@@ -6,7 +6,7 @@ import java.io.Serializable;
  * An annotation processor should use an input to generate its source files. Have your processor's
  * input extend this interface, passing the class that's implementing the interface as the param.
  * @param <T> The class that's implementing the interface. E.g:
- *           class MyInput implements MergeInput<MyInput> {
+ *           class MyInput implements MergeInput&lt;MyInput&gt; {
  */
 public interface MergeInput<T extends MergeInput<T>> extends Serializable {
 
