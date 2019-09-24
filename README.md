@@ -78,7 +78,7 @@ MergeManager mergeManager =  new MergeManager<Input>(mFiler, mTimestamp,
 3. Use MergeManager's **manageMerging(T)** method to transform your input to a merged one, and write additional merge classes.
 
 ```java
-input = mergeManager.managerMerging(input);
+input = mergeManager.manageMerging(input);
 ```
 
 #### Config
@@ -102,3 +102,12 @@ Again, how you design your processor and if you use these annotations or not is 
 
 #### Advanced - MergeSession
 
+A MergeSession allows you to do all the steps of a merge individually, as opposed to doing them in a batch via *manageMerging*. You can see a sample use case of this in [EasyFlavor annotation processor](https://github.com/globulus/easyflavor). Here's how to use this feature:
+
+1. Obtain a new MergeSession instance from your MergeManager:
+
+ ```java
+MergeSession<MyInput> session = mergeManager.newSession();
+```
+
+2. Call the session actions individually - *mergeInput* finds previous merge files and merges their content with your input, while *writeMergeFiles* writes the provided input to new merge files.

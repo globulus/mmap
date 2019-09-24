@@ -15,7 +15,7 @@ ext {
     siteUrl = 'https://github.com/globulus/mmap'
     gitUrl = 'https://github.com/globulus/mmap.git'
 
-    libraryVersion = '1.0.0'
+    libraryVersion = '1.0.1'
 
     developerId = 'globulus'
     developerName = 'Gordan Glavas'
